@@ -1,14 +1,7 @@
-pub fn add(left: usize, right: usize) -> usize {
-    left + right
-}
+pub(crate) mod client;
+pub(crate) mod ffi;
+pub(crate) mod interface;
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+pub(crate) mod config;
 
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
-}
+pub use config::Ljx8000aConfig;

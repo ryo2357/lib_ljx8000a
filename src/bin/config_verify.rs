@@ -6,13 +6,13 @@ use ljx8000a::Ljx8000aConfig;
 
 fn main() -> anyhow::Result<()> {
     mylogger::init();
-    // parse_test()?;
-    config_test()?;
+    // parse_verify()?;
+    config_verify()?;
     Ok(())
 }
 
 #[allow(dead_code)]
-fn config_test() -> anyhow::Result<()> {
+fn config_verify() -> anyhow::Result<()> {
     dotenv().ok();
     let config = Ljx8000aConfig::from_env().unwrap();
 
@@ -21,7 +21,7 @@ fn config_test() -> anyhow::Result<()> {
 }
 
 #[allow(dead_code)]
-fn parse_test() -> anyhow::Result<()> {
+fn parse_verify() -> anyhow::Result<()> {
     let input = String::from("192,168,0,1");
     info!("input:{:?}", input);
     let input: Vec<&str> = input.split_terminator(',').collect();

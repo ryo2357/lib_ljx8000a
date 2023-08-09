@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 #![allow(non_snake_case)]
-use log::info;
+use log::debug;
 use std::sync::mpsc;
 
 use super::ffi;
@@ -42,7 +42,7 @@ extern "C" fn send_data(
         notify: dwNotify,
         user: dwUser,
     };
-    info!(
+    debug!(
         "send data from ljx dwCount:{},dwNotify:{}",
         dwCount, dwNotify
     );
@@ -91,7 +91,7 @@ impl LjxIf {
         let mut sender = Box::new(tx);
         let cb = unsafe { ffi::make_bridge_callback(&mut *sender, send_data) };
 
-        info!("create LjxIF");
+        debug!("create LjxIF");
         Ok((
             Self {
                 is_initialized: true,
@@ -145,7 +145,7 @@ impl LjxIf {
                 }
             }
         };
-        info!("open eathenet");
+        debug!("open eathenet");
         self.is_ethernet_open = true;
         self.ip_config = Some(ip_config);
         Ok(())
@@ -176,7 +176,7 @@ impl LjxIf {
                 }
             }
             // TODO:receive_codeの確認
-            info!(
+            debug!(
                 "initialize high speed communication. receive_code: {:?}",
                 receive_code
             );
@@ -217,11 +217,11 @@ impl LjxIf {
                 }
             }
 
-            info!("profile_info: {:?}", profile_info);
+            debug!("profile_info: {:?}", profile_info);
             // TODO:どのようなプロファイルが返ってくるかテスト
             // 入力値とコントローラー内に保存されているデータの関係
         }
-        info!("pre started high speed communication");
+        debug!("pre started high speed communication");
 
         self.is_pre_start_communication = true;
         Ok(())
@@ -253,7 +253,7 @@ impl LjxIf {
         }
 
         self.is_communicating = true;
-        info!("start high speed communication");
+        debug!("start high speed communication");
         Ok(())
     }
 
@@ -277,7 +277,7 @@ impl LjxIf {
             }
         }
 
-        info!("stop high speed communication");
+        debug!("stop high speed communication");
         self.is_communicating = false;
         Ok(())
     }
@@ -285,8 +285,8 @@ impl LjxIf {
 
 impl Drop for LjxIf {
     fn drop(&mut self) {
-        // info!("LjxFf destruct from drop");
-        info!("LjxFfのDropよる終了処理");
+        // debug!("LjxFf destruct from drop");
+        debug!("LjxFfのDropよる終了処理");
 
         // if self.is_pre_start_communication{
         //     // 特に必要な処理はない
@@ -297,17 +297,17 @@ impl Drop for LjxIf {
 
         if self.is_initialized_communication {
             unsafe { ffi::LJX8IF_FinalizeHighSpeedDataCommunication(self.device_id) };
-            info!("Communication finalized");
+            debug!("Communication finalized");
         }
 
         if self.is_ethernet_open {
             unsafe { ffi::LJX8IF_CommunicationClose(self.device_id) };
-            info!("Ethernet finalized");
+            debug!("Ethernet finalized");
         };
 
         if self.is_initialized {
             unsafe { ffi::LJX8IF_Finalize() };
-            info!("DLL finalized");
+            debug!("DLL finalized");
         };
     }
 }

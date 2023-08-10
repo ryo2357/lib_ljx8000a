@@ -14,6 +14,7 @@ pub struct LjxClient {
     data_receiver: Arc<Mutex<std::sync::mpsc::Receiver<ReceiveData>>>,
     profile_writer: Option<ProfileWriter>,
     state: Ljx8060State,
+    last_filepath: Option<String>,
 }
 impl LjxClient {
     pub async fn create(config: Ljx8000aConfig) -> anyhow::Result<Self> {
@@ -31,6 +32,7 @@ impl LjxClient {
             data_receiver: Arc::new(Mutex::new(data_receiver)),
             profile_writer: None,
             state: Ljx8060State::NoConnection,
+            last_filepath: None,
         })
     }
 
@@ -83,6 +85,8 @@ impl LjxClient {
         let date = get_time_string();
         let save_path = self.config.save_dir.clone() + "/raw_profile" + &date + ".hex";
 
+        self.last_filepath = Some(save_path.clone());
+
         info!("make profile : {:?}", save_path);
 
         let rx = Arc::clone(&self.data_receiver);
@@ -125,6 +129,16 @@ impl LjxClient {
         self.profile_writer = None;
         self.state = Ljx8060State::PreStarted;
         Ok(())
+    }
+
+    pub fn get_last_filepath(&self) -> anyhow::Result<String> {
+        match &self.last_filepath {
+            Some(path) => Ok(path.clone()),
+            None => {
+                warn!("not have last_filepath");
+                anyhow::bail!("not have last_filepath")
+            }
+        }
     }
 }
 

@@ -1,3 +1,4 @@
+use log::error;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug)]
@@ -13,7 +14,13 @@ pub struct Ljx8000aConfig {
 }
 impl Ljx8000aConfig {
     pub fn from_env() -> anyhow::Result<Self> {
-        let builder = envy::prefixed("Ljx8000aConfig_").from_env::<Ljx8000aConfigBuilder>()?;
+        let builder = match envy::prefixed("Ljx8000aConfig_").from_env::<Ljx8000aConfigBuilder>() {
+            Ok(builder) => builder,
+            Err(err) => {
+                error!(".envからLjx8000aConfigの読み込み失敗：{:?}", err);
+                anyhow::bail!(".envからLjx8000aConfigの読み込み失敗：{:?}", err)
+            }
+        };
         let config = builder.build().unwrap();
         Ok(config)
     }
@@ -54,4 +61,45 @@ fn convert_host(host: String) -> anyhow::Result<[u8; 4]> {
     output[2] = input[2].parse()?;
     output[3] = input[3].parse()?;
     Ok(output)
+}
+
+#[derive(Deserialize, Serialize, Debug)]
+pub struct LjxDataConverterConfig {
+    // .envから取得しないデータはOptionで
+    pub ljx_data_path: Option<String>,
+    pub output_dir: String,
+    pub output_name: String,
+
+    pub convert_quantity: usize,
+
+    pub y_start_num: usize,
+    pub y_pitch: f64,
+    pub y_take_num: usize,
+    pub y_overlap: usize,
+
+    pub x_start_num: usize,
+    pub x_pitch: f64,
+    pub x_take_num: usize,
+
+    pub z_lower_limit: i32,
+    pub z_upper_limit: i32,
+
+    pub have_brightness: bool,
+}
+
+impl LjxDataConverterConfig {
+    pub fn from_env() -> anyhow::Result<Self> {
+        let config =
+            match envy::prefixed("LjxDataConverterConfig_").from_env::<LjxDataConverterConfig>() {
+                Ok(config) => config,
+                Err(err) => {
+                    error!(".envからLjxDataConverterConfigの読み込み失敗：{:?}", err);
+                    anyhow::bail!(".envからLjxDataConverterConfigの読み込み失敗：{:?}", err)
+                }
+            };
+        Ok(config)
+    }
+    pub fn set_ljx_data_path(&mut self, path: String) {
+        self.ljx_data_path = Some(path);
+    }
 }

@@ -1,5 +1,7 @@
 use chrono::{DateTime, Local};
 use log::{info, warn};
+use std::fs;
+use std::path::Path;
 use std::sync::{Arc, Mutex};
 
 use crate::interface::ReceiveData;
@@ -83,6 +85,17 @@ impl LjxClient {
 
         // プレスタート時に作成
         let date = get_time_string();
+
+        // ディレクトリの作成
+        let output_dir = Path::new(&self.config.save_dir);
+
+        match output_dir.is_dir() {
+            true => {}
+            false => {
+                fs::create_dir_all(output_dir)?;
+            }
+        }
+
         let save_path = self.config.save_dir.clone() + "/raw_profile" + &date + ".hex";
 
         self.last_filepath = Some(save_path.clone());

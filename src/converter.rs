@@ -1,4 +1,5 @@
-use log::{error, info};
+use chrono::{DateTime, Local};
+use log::{debug, error, info};
 use std::fs;
 use std::fs::File;
 use std::io::{BufReader, BufWriter, Read, Seek, SeekFrom, Write};
@@ -10,13 +11,16 @@ pub struct LjxDataConverter {
     config: LjxDataConverterConfig,
 }
 impl LjxDataConverter {
-    pub fn create(config: LjxDataConverterConfig) -> anyhow::Result<Self> {
+    pub fn create(mut config: LjxDataConverterConfig) -> anyhow::Result<Self> {
         let output_dir = Path::new(&config.output_dir);
 
         match output_dir.is_dir() {
             true => {
-                error!(".envで設定されている出力フォルダがすでに存在する");
-                anyhow::bail!("出力フォルダがすでに存在する")
+                info!(".envで設定されている出力フォルダがすでに存在する");
+                let now: DateTime<Local> = Local::now();
+                let date = now.format("%Y-%m-%d_%H%M%S").to_string();
+                config.output_dir.pop();
+                config.output_dir = config.output_dir + "_" + &date + "/";
             }
             false => {}
         }
@@ -119,7 +123,6 @@ impl ConverterLjxToPly {
         writer.write_header()?;
         let result = self.stream_convert(&mut writer)?;
         writer.fix_header()?;
-
         self.made_num += 1;
 
         self.logger.write_convert_success(
@@ -136,7 +139,6 @@ impl ConverterLjxToPly {
         writer: &mut PlyStreamWriter,
     ) -> anyhow::Result<StreamConvertResult> {
         // ここで読み出しできない場合、エラーが発生する用にする必用がある
-
         for _i in 0..self.profile_take_num {
             let result = self.reader.read_profile()?;
             let (trigger_count, profile) = match result {
@@ -441,6 +443,7 @@ struct LjxBufParseNoBrightness {
 }
 impl LjxBufParseNoBrightness {
     fn new(start: usize, x_take_num: usize) -> anyhow::Result<Self> {
+        debug!("create LjxBufParseNoBrightness");
         // TODO:条件式が本当にあっているか確認が必要
         if start + x_take_num > 3200 {
             anyhow::bail!("RowDataToProfileの入力値が不正")
@@ -455,14 +458,21 @@ impl ParseRead for LjxBufParseNoBrightness {
     fn parse_read(&self, reader: &mut BufReader<File>) -> anyhow::Result<ProfileReadResult> {
         // 輝度なしの場合、[0; (3200 + 4) * 4]
         let mut buf = [0; (3200 + 4) * 4];
-
         let len = reader.read(&mut buf)?;
         if len == 0 {
             info!("末端に到着");
             return Ok(ProfileReadResult::Terminal);
         }
 
-        let trigger_count = u32::from_le_bytes(buf[4..7].try_into()?);
+        let before_len = buf.len();
+        let trigger_buf = &buf[4..8];
+        let trigger_count = u32::from_le_bytes(trigger_buf.try_into()?);
+        let after_len = buf.len();
+
+        if before_len != after_len {
+            error!("before_len: {:?},after_len:{:?}", before_len, after_len);
+            panic!();
+        }
 
         let iter = buf.chunks(4).skip(4).skip(self.start).take(self.take_num);
         let mut row_profile = Vec::<i32>::new();

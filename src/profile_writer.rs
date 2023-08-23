@@ -9,6 +9,7 @@ use std::io::{BufWriter, Write};
 
 use super::interface::ReceiveData;
 use log::debug;
+use log::info;
 use std::thread::JoinHandle;
 
 struct DataWriter {
@@ -19,6 +20,7 @@ struct DataWriter {
 
 impl DataWriter {
     fn create(path: String, data_num: usize, brightness: bool) -> anyhow::Result<Self> {
+        // info!("create {:?}", path);
         let file = File::create(path)?;
         let writer = BufWriter::new(file);
 
@@ -35,6 +37,8 @@ impl DataWriter {
     }
 
     fn push_profile(&mut self, profile: &[u8]) {
+        // debug!("in push_profile {:?}", profile.len());
+
         let header = &profile[0..16];
         self.writer.write_all(header).unwrap();
         let data = &profile[24..self.data_end];
@@ -70,6 +74,8 @@ impl ProfileWriter {
         let thread: JoinHandle<anyhow::Result<()>> = thread::spawn(move || {
             loop {
                 let receive_data = rx.lock().unwrap().recv().unwrap();
+                // debug!("received receive_data");
+                // debug!("receive_data.count:{}", receive_data.count);
                 // TODO:dwNotifyの値によってフローを変更する必要があるか？
                 data_writer.push_data(receive_data.data);
                 debug!("received {} data written", receive_data.count);
